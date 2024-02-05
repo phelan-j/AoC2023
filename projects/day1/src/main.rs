@@ -58,32 +58,50 @@ fn calibration_value(value: &String) -> u32 {
     let mut b = 0;
 
 
-    let i_max = n;
+    let i_max = n / 2 + 1;
     for i in 0..i_max {
         let r = n - i - 1;
-        if !found_forwards {
-            // TODO: keep forward search if not found backwards string
-            if let Some(p) = as_numeric_string(&value[i..=i]) {
+        if let Some(p) = as_numeric_string(&value[i..=i]) {
+            if !found_forwards {
                 found_forwards = true;
                 f = p;
             }
+            if !found_backwards {
+                b = p;
+            }
         }
-        if !found_backwards {
-            if let Some(p) = as_numeric_string(&value[r..=r]) {
+        if let Some(p) = as_numeric_string(&value[r..=r]) {
+            if !found_backwards {
                 found_backwards = true;
                 b = p;
+            }
+            if !found_forwards {
+                f = p;
             }
         }
         if !found_forwards || !found_backwards {
             for j in 0..DIGITS.len() {
                 let digit = DIGITS[j];
-                if !found_forwards && check_digit_string(value, i, digit) {
-                    found_forwards = true;
-                    f = j as u32;
+                if check_digit_string(value, i, digit) {
+                    if !found_forwards
+                    {
+                        found_forwards = true;
+                        f = j as u32;
+                    }
+                    else if !found_backwards
+                    {
+                        b = j as u32;
+                    }
                 }
-                if !found_backwards && check_digit_string(value, r, digit) {
-                    found_backwards = true;
-                    b = j as u32;
+                if check_digit_string(value, r, digit) {
+                    if !found_backwards
+                    {
+                        found_backwards = true;
+                        b = j as u32;
+                    }
+                    if !found_forwards {
+                        f = j as u32;
+                    }
                 }
                 if found_forwards && found_backwards {
                     break;
