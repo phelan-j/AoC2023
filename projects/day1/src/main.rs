@@ -13,7 +13,7 @@ where P: AsRef<Path>, {
 
 fn main() {
     let mut sum = 0;
-    if let Ok(lines) = read_lines("./inputs/input.txt") {
+    if let Ok(lines) = read_lines("./inputs/test_input.txt") {
         for line in lines.flatten() {
             let calib_value = calibration_value(&line);
             sum = sum + calib_value;
@@ -28,25 +28,21 @@ fn calibration_value(value: &String) -> u32 {
     10 * first_digit + last_digit
 }
 
-fn is_numeric(c: char) -> bool {
-    c >= '0' && c <= '9'
-}
-
-fn is_numeric_string(value: &str) -> bool {
+fn as_numeric_string(value: &str) -> Option<u32> {
     if value.len() == 1 {
         if let Some(c) = value.chars().next() {
-            return is_numeric(c)
+            return c.to_digit(10)
         }
     }
-    false
+    None
 }
 
 fn first_number(value: &String) -> u32 {
     let n = value.len();
     for i in 0..n {
         let chr_str = &value[i..=i];
-        if is_numeric_string(chr_str) {
-            return chr_str.parse::<u32>().unwrap();
+        if let Some(p) = as_numeric_string(chr_str) {
+            return p
         }
         else {
             for j in 0..DIGITS.len() {
@@ -69,8 +65,8 @@ fn last_number(value: &String) -> u32 {
     for r in 0..n {
         let i = n - r - 1;
         let chr_str = &value[i..=i];
-        if is_numeric_string(chr_str) {
-            return chr_str.parse::<u32>().unwrap();
+        if let Some(p) = as_numeric_string(chr_str) {
+            return p
         }
         else {
             for j in 0..DIGITS.len() {
