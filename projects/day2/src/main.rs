@@ -12,14 +12,36 @@ fn main() {
     if let Ok(lines) = read_lines("./input/input.txt") {
         let mut sum = 0;
         for line in lines.flatten() {
-            let valid = process_line(&line, 12, 13, 14);
-            sum = sum + valid;
+            // part one
+            //let valid = id_if_valid(&line, 12, 13, 14);
+            //sum = sum + valid;
+            // part two
+            let power = get_power(&line);
+            sum = sum + power;
         }
         println!("{sum}");
     }
 }
 
-fn process_line(line: &String, r_lim: u32, g_lim: u32, b_lim: u32) -> u32 {
+fn get_power(line: &String) -> u32 {
+    let (mut r_max, mut g_max, mut b_max) = (0,0,0);
+    if let Some(i_colon) = line.find(":") {
+        let id_str = &line["Game ".len()..i_colon];
+        if let Ok(id) = id_str.parse::<u32>() {
+            let sets = line[i_colon+1..].split(";");
+            for set in sets {
+                let (r,g,b) = process_set(set);
+                if r > r_max { r_max = r }
+                if g > g_max { g_max = g }
+                if b > b_max { b_max = b }
+            }
+        }
+    }
+    return r_max * g_max * b_max;
+}
+
+
+fn id_if_valid(line: &String, r_lim: u32, g_lim: u32, b_lim: u32) -> u32 {
     if let Some(i_colon) = line.find(":") {
         let id_str = &line["Game ".len()..i_colon];
         if let Ok(id) = id_str.parse::<u32>() {
