@@ -1,17 +1,22 @@
 use day4::*;
 use std::collections::HashSet;
 fn main() {
-    if let Ok(lines) = read_lines("./input/input.txt") {
+    if let Ok(lines) = read_lines("./input/test_input.txt") {
         let mut sum = 0;
         let mut winning: HashSet<u32> = HashSet::new();
         for line in lines.flatten() {
-            let card_val = calculate_scratch_card_value(&line, &mut winning);
+            let card_val = calculate_scratch_card_points(&line, &mut winning);
             sum += card_val;
         }
         println!("{sum}");
     }
 }
-fn calculate_scratch_card_value(line: &str, winning: &mut HashSet<u32>) -> u32 {
+
+fn calculate_scratch_card_points(line: &str, winning: &mut HashSet<u32>) -> u32 {
+    let matches = calculate_scratch_card_matches(line, winning);
+    if matches > 0 { 1 << (matches - 1) } else { 0 }
+}
+fn calculate_scratch_card_matches(line: &str, winning: &mut HashSet<u32>) -> u32 {
     let mut chars = line.chars();
     let mut val = 0;
     let mut match_count = 0;
@@ -41,5 +46,5 @@ fn calculate_scratch_card_value(line: &str, winning: &mut HashSet<u32>) -> u32 {
         }
     }
     if winning.contains(&val) { match_count += 1; }
-    if match_count > 0 { 1 << (match_count - 1) } else { 0 }
+    match_count
 }
