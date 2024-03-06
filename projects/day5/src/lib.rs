@@ -63,6 +63,49 @@ pub fn part_one<I>(mut flattened: I)
     if let Some(m_min) = m_min { println!("{m_min}"); }
 }
 
+pub fn part_two<I>(mut flattened: I)
+    where I : Iterator<Item = String> {
+    // load in first line to read seeds
+    let line = flattened.next().unwrap();
+    // read in vector of seeds - mutable as we will update
+    let seeds = parse_to_vec(&line);
+    let mut seed_intervals : Vec<(u64,u64)> = Vec::new();
+    for i in 0..seeds.len() / 2 {
+        seed_intervals.push((seeds[2 * i],seeds[2 * i + 1]));
+    }
+
+    let mut map_full: Vec<(u64,u64,u64)> = Vec::new();
+    let mut map_curr: Vec<(u64,u64,u64)> = Vec::new();
+    for line in flattened {
+        let v = parse_to_vec(&line);
+        if v.len() > 2 {
+            map_curr.push((v[1],v[0],v[2]));
+        }
+        else if map_curr.len() > 0 {
+            map_full = compose(&map_full, &map_curr);
+            map_curr = Vec::new();
+        }
+    }
+    if map_curr.len() > 0 {
+        map_full = compose(&map_full, &map_curr);
+    }
+    map_full.sort_by(|(x,_,_),(y,_,_)| x.cmp(y));
+
+    let mut d_min = None;
+    for interval in seed_intervals {
+        let mapped = apply_map_interval(interval, &map_full);
+        for (ds,_) in mapped {
+            d_min = Some(match d_min {
+                Some(d) => if ds < d { ds } else { d },
+                None => ds
+            });
+        }
+    }
+    if let Some(d) = d_min {
+        println!("{d}");
+    }
+}
+
 fn apply_map(s: u64, map: &Vec<(u64,u64,u64)>) -> u64 {
     let mut map = map.clone();
     map.sort_by(|(x,_,_),(y,_,_)| x.cmp(y));
@@ -74,6 +117,85 @@ fn apply_map(s: u64, map: &Vec<(u64,u64,u64)>) -> u64 {
     let se = ss + l;
     if ss <= s && s < se { ds + (s - ss) } else { s }
 }
+
+fn apply_map_interval(interval: (u64,u64), map: &Vec<(u64,u64,u64)>) -> Vec<(u64,u64)> {
+    let mut vec : Vec<(u64,u64)> = Vec::new();
+    let mut map = map.clone();
+    map.sort_by(|(x,_,_),(y,_,_)| x.cmp(y));
+    // i[   )
+    let (is, il) = interval;
+    let ie = is + il;
+    let mut i = match map.binary_search_by(|(x,_,_)| x.cmp(&is)) {
+        Ok(i) => i,
+        Err(i) => if i > 0 { i - 1 } else { i }
+    };
+    let i_max = map.len();
+    let mut is = is;
+
+    while i < i_max {
+        let (ss, ds, l) = map[i];
+        let se = ss + l;
+        if is <= ss {
+            // i[
+            //     s[
+            let s = ss - is;
+            if s > 0 {
+                vec.push((is,s));
+            }
+            if ie < ss {
+                // i[  )
+                //       s[ 
+                vec.push((is,il));
+                break;
+            }
+            else {
+                // i[      )
+                //    s[
+                if ie < se {
+                    // i[     )
+                    //    s[    )
+                    vec.push((ds,ie - ss));
+                    break;
+                }
+                else {
+                    // i[       )
+                    //    s[ )
+                    vec.push((ds,l));
+                    is = se;
+                }
+            }
+        }
+        else {
+            //     i[
+            // s[
+            let s = is - ss;
+            if is < se {
+                //     i[
+                // s[     )
+                if ie < se { 
+                    //    i[  )
+                    // s[       )
+                    vec.push((ds + s, il));
+                    break;
+                }
+                else {
+                    //    i[   )
+                    // s[    )
+                    vec.push((ds + s, ie - se));
+                    is = se;
+                }
+            }
+            else {
+                //       i[
+                // s[ )
+                // do nothing - move to next map interval
+            }
+        }
+        i += 1;
+    }
+    vec
+}
+
 
 fn compose(f: &Vec<(u64,u64,u64)>, g: &Vec<(u64,u64,u64)>) -> Vec<(u64,u64,u64)> {
     let mut h : Vec<(u64,u64,u64)> = Vec::new();
