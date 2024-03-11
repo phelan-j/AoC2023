@@ -85,23 +85,14 @@ pub fn node_path_count<I>(mut lines: I, is_start: fn(usize) -> bool, is_end: fn(
 }
 
 fn extended_euclid(a: i64, b: i64) -> (i64,i64,i64) {
-    let mut r_p = a;
-    let mut s_p = 1;
-    let mut t_p = 0;
-    let mut r_c = b;
-    let mut s_c = 0;
-    let mut t_c = 1;
+    let (mut r_p, mut s_p, mut t_p) = (a, 1, 0);
+    let (mut r_c, mut s_c, mut t_c) = (b, 0, 1);
     while r_c != 0 {
         let q = r_p / r_c;
-        let r_n = r_p - q * r_c;
-        let s_n = s_p - q * s_c;
-        let t_n = t_p - q * t_c;
-        r_p = r_c;
-        s_p = s_c;
-        t_p = t_c;
-        r_c = r_n;
-        s_c = s_n;
-        t_c = t_n;
+        let (r_n, s_n, t_n) =
+        (r_p - q * r_c, s_p - q * s_c, t_p - q * t_c);
+        (r_p, s_p, t_p) = (r_c, s_c, t_c);
+        (r_c, s_c, t_c) = (r_n, s_n, t_n);
     }
     (r_p,s_p,t_p)
 }
