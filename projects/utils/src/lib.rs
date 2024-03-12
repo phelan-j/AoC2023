@@ -10,6 +10,10 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
+pub fn custom_parse_to_vec<T>(line: &str, delimiter: &str, parse: fn(&str) -> T) -> Vec<T> {
+    line.split(delimiter).map(parse).collect()
+}
+
 pub fn parse_to_vec<T>(line: &str) -> Vec<T> 
     where T : From<u32> + Add<T, Output = T> + Mul<T, Output = T>
 {
