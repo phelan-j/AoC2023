@@ -1,0 +1,65 @@
+use utils::*;
+
+pub fn part_one<I>(lines: I) -> i64
+    where I : Iterator<Item = String> {
+    next_in_sequence::<I>(lines, |i, n| (n - i + 1) as i64)
+}
+
+pub fn part_two<I>(lines: I) -> i64
+    where I : Iterator<Item = String> {
+    next_in_sequence::<I>(lines, |_, _| -1)
+}
+
+
+pub fn next_in_sequence<I>(lines: I, t: fn(i64, i64) -> i64) -> i64
+    where I : Iterator<Item = String> {
+    let mut sum = 0;
+    for line in lines {
+        let v = custom_parse_to_vec::<i64>(&line, " ", |x| x.parse::<i64>().expect("error"));
+        let mut b_p = 1;
+        let n = v.len() as i64;
+        for m in 1..n {
+            let b = binomial_sum(&v, 0, m, n - 1 - m, m);
+            println!("binomial sum: {b}");
+            if b == 0 && b_p == 0 {
+                let n = binomial_sum(&v, 0, m - 1, n - m - 1, m - 1);
+//                let n = binomial_sum(&v, 1, m - 1, -1, m - 1);
+                println!("n: {n}");
+                sum += (-1i64).pow((m + 1) as u32) * n;
+                break;
+            }
+            b_p = b;
+        }
+        if b_p != 0 {
+            let n = (-1i64).pow((n + 1) as u32) * binomial_sum(&v, 0, n, 0, n);
+            sum += n;
+        }
+    }
+    sum
+}
+
+// given a sequence a_i
+// calculate the sum from k = k_start to k_end 
+// of (-1)^k (n choose k) a_{k - k_offset}
+fn binomial_sum(a: &Vec<i64>, k_start: i64, k_end: i64, k_offset: i64, n: i64) -> i64 {
+    let mut sum = 0;
+    println!("Calculating binomial sum from {k_start} to {k_end}, n: {n}, k_offset: {k_offset}");
+    for k in k_start..=k_end {
+        let i = k + k_offset;
+        let s = (-1i64).pow(k as u32);
+        let b = choose(n, k);
+        let a_i = a[i as usize];
+        let s_i = s * b * a_i;
+        println!("k: {k}, i: {i}, s: {s}, b: {b}, a_i: {a_i}, s_i: {s_i}");
+        sum += s_i;
+    }
+    sum
+}
+
+fn choose(n: i64, k: i64) -> i64 {
+    let mut v = 1;
+    let k = if k < n - k { k } else { n - k };
+    for p in n-k+1..=n { v *= p; }
+    for p in 2..=k { v /= p; }
+    v
+}

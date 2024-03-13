@@ -1,0 +1,15 @@
+use utils::*;
+
+pub fn part_one<I>(lines: I) -> i64
+    where I : Iterator<Item = String> {
+    next_in_sequence<I>(lines)
+}
+
+
+pub fn next_in_sequence<I>(mut lines: I) -> u64
+    where I : Iterator<Item = String> {
+    for line in lines {
+        println!("{line}");
+    }
+    0
+}
