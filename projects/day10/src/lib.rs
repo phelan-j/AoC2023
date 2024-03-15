@@ -62,9 +62,6 @@ pub fn part_one<I>(lines: I) -> i64
         println!("v[j + 1][i] = {:#06b}",v[j + 1][i]);
         s |= S;
     }
-    else {
-        panic!("Could not find starting direction from 'S' at ({i},{j})");
-    }
     println!("s: {s:#6b}");
     v[j][i] = s;
 
