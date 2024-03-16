@@ -1,8 +1,3 @@
-const VALID_LEFT_CHARS : &str = "-FL";
-const VALID_RIGHT_CHARS : &str = "-J7";
-const VALID_UP_CHARS : &str = "|F7";
-const VALID_DOWN_CHARS : &str = "|JL";
-
 const N : u8 = 0b0001;
 const E : u8 = 0b0010;
 const S : u8 = 0b0100;
@@ -15,6 +10,14 @@ const NS : u8 = N | S;
 const WE : u8 = W | E;
 const MASK : u8 = N | E | S | W;
 
+
+const DIRECTION : &str = ".NELS|FXWJ-X7";
+
+fn debug_print(v: u8) -> String  {
+    let v = v as usize;
+    DIRECTION[v..=v].to_string()
+}
+
 pub fn part_one<I>(lines: I) -> i64
     where I : Iterator<Item = String> {
     let mut i_s = 0;
@@ -24,16 +27,11 @@ pub fn part_one<I>(lines: I) -> i64
     println!("input");
     for (j,line) in lines.enumerate() {
         println!("{line}");
-        v.push(line.chars().enumerate().map(|(i,c)| match c {
-            '|' => NS,
-            '-' => WE,
-            'J' => NW,
-            'L' => NE,
-            '7' => SW,
-            'F' => SE,
-            'S' => { i_s = i; j_s = j; 0 },
-            _ => 0
-        }).collect());
+        v.push(line.chars().enumerate().map(|(i,c)| 
+            if c == 'S' { i_s = i; j_s = j; 0 }
+            else if let Some(k) = &DIRECTION.find(c) { *k as u8 }
+            else { panic!("Unknown symbol {c}") }
+        ).collect());
         ab.push(vec![0; line.len()]);
     }
     let mut i = i_s;
@@ -62,7 +60,7 @@ pub fn part_one<I>(lines: I) -> i64
         println!("v[j + 1][i] = {:#06b}",v[j + 1][i]);
         s |= S;
     }
-    println!("s: {s:#6b}");
+    println!("s: {s:#06b}");
     v[j][i] = s;
 
     if s & E != 0 { d = W; }
@@ -71,6 +69,8 @@ pub fn part_one<I>(lines: I) -> i64
     else if s & N != 0 { d = S; };
 
     println!("d: {d:#06b}");
+    
+    let mut cw = 0i64;
 
     // ab is such that
     // -1 if on path
@@ -78,130 +78,36 @@ pub fn part_one<I>(lines: I) -> i64
     // 2 if right of path (assuming clockwise)
     loop {
         let c = v[j][i];
-        println!("c: {c:#06b}, i: {i}, j: {j}, d: {d:#06b}");
         ab[j][i] = -1;
         len += 1;
         let f = ((d << 2) | (d >> 2)) & MASK;
-        d = f ^ c;
-        /*
-        match c {
-            WE => match d {
-                // ->- 
-                E => 
-                {
-                    if i > 0 { ab[j][i-1] |= 1; }
-                    if i < m - 1 { ab[j][i+1] |= 2; }
-                },
-                // -<-
-                W => { 
-                    if i > 0 { ab[j][i-1] |= 2; }
-                    if i < m - 1 { ab[j][i+1] |= 1; }
-                },
-                _ => panic!("Cannot enter - from N or S")
-            }, 
-            NS => match d {
-                // v
-                S => 
-                {
-                    if j > 0 { ab[j-1][i] |= 1; }
-                    if j < n - 1 { ab[j+1][i] |= 2; }
-                },
-                // ^
-                N => 
-                {
-                    if j < n - 1 { ab[j+1][i] |= 1; }
-                    if j > 0 { ab[j-1][i] |= 2; }
-                },
-                _ => panic!("Cannot enter | from W or E")
+        let dn = f ^ c;
+        if dn == ((f >> 1) | (f << 3)) & MASK { cw += 1; }
+        if dn == ((f << 1) | (f >> 3)) & MASK { cw -= 1; }
+        println!("c: {c:#06b}, i: {i}, j: {j}, d: {d:#06b}, f: {f:#06b}, dn: {dn:#06b}");
 
-            },
-            SE => d = match d {
-                // F<
-                // v
-                W => { 
-                    if i > 0 { ab[j][i-1] |= 2; 
-                        if j > 0 { ab[j-1][i-1] |= 2; }
-                    }
-                    if j > 0 { ab[j-1][i] |= 2; }
-                    S
-                }
-                // F>
-                // ^
-                N => {
-                    if i > 0 { ab[j][i-1] |= 1; 
-                        if j > 0 { ab[j-1][i-1] |= 1; }
-                    }
-                    if j > 0 { ab[j-1][i] |= 1; }
-                    E
-                }
-                _ => panic!("Cannot enter F from N or W")
-            },
-            NW => d = match d {
-                //  ^
-                // >J
-                E => {
-                    if i < m - 1 { ab[j][i+1] |= 2;
-                        if j < n - 1 { ab[j+1][i+1] |= 2; }
-                    }
-                    if j < n - 1 { ab[j+1][i] |= 2; }
-                    N
-                },
-                //  v
-                // <J
-                S => {
-                    if i < m - 1 { ab[j][i+1] |= 1;
-                        if j < n - 1 { ab[j+1][i+1] |= 1; }
-                    }
-                    if j < n - 1 { ab[j+1][i] |= 1; }
-                    W
-                }
-                _ => panic!("Cannot enter J from S or E")
-            },
-            NE => d = match d {
-                // ^
-                // L<
-                W => {
-                    if i > 0 { ab[j][i-1] |= 1; 
-                        if j < n - 1 { ab[j+1][i-1] |= 1; }
-                    }
-                    if j < n - 1 { ab[j+1][i] |= 1; }
-                    N
-                },
-                // v
-                // L>
-                S => {
-                    if i > 0 { ab[j][i-1] |= 2; 
-                        if j < n - 1 { ab[j+1][i-1] |= 2; }
-                    }
-                    if j < n - 1 { ab[j+1][i] |= 2; }
-                    E
-                },
-                _ => panic!("Cannot enter L from S or W")
-            },
-            SW => d = match d {
-                // >7
-                //  v
-                E => {
-                    if i < m - 1 { ab[j][i+1] |= 1; 
-                        if j > 0 { ab[j-1][i+1] |= 1; }
-                    }
-                    if j > 0 { ab[j-1][i] |= 1; }
-                    S
-                },
-                // <7
-                //  ^
-                N => {
-                    if i < m - 1 { ab[j][i+1] |= 2; 
-                        if j > 0 { ab[j-1][i+1] |= 2; }
-                    }
-                    if j > 0 { ab[j-1][i] |= 2; }
-                    W
-                },
-                _ => panic!("Cannot enter 7 from N or W")
-            },
-            _ => panic!("Entered unknown pipe {c}")
+        if d == E || dn == E {
+            if j > 0 { ab[j - 1][i] |= 1; }
+            if j < n - 1 { ab[j + 1][i] |= 2; }
         }
-    */
+
+        if d == N || dn == N {
+            if i > 0 { ab[j][i - 1] |= 1; }
+            if i < m - 1 { ab[j][i + 1] |= 2; }
+        }
+
+        if d == W || dn == W {
+            if j > 0 { ab[j - 1][i] |= 2; }
+            if j < n - 1 { ab[j + 1][i] |= 1; }
+        }
+
+        if d == S || dn == S {
+            if i > 0 { ab[j][i - 1] |= 2; }
+            if i < m - 1 { ab[j][i + 1] |= 1; }
+        }
+
+        d = dn;
+
         match d {
             E => i += 1,
             W => i -= 1,
@@ -209,9 +115,10 @@ pub fn part_one<I>(lines: I) -> i64
             N => j -= 1,
             _ => panic!("Unknown direction {d:#06b}")
         }
-//        println!("c: {c:#06b}, d: {d:#06b}, f: {f:#06b}, d1: {d1:#06b}, d2: {d2:#06b}");
         if i == i_s && j == j_s { break; }
     }
+
+    println!("cw: {cw}");
 
     println!("parsed:");
     for j in 0..ab.len() {
