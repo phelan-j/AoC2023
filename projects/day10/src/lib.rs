@@ -1,3 +1,8 @@
+use std::collections::HashSet;
+
+// bit values are important such that
+// we can find reverse direction with
+// bitwise operations
 const N : u8 = 0b0001;
 const E : u8 = 0b0010;
 const S : u8 = 0b0100;
@@ -7,7 +12,7 @@ const DIRECTION : &str = ".NELS|FXWJ-X7";
 
 pub fn part_one<I>(lines: I) -> i64
     where I : Iterator<Item = String> {
-    calculate_path_and_closure::<I>(lines).0
+    calculate_path_and_closure::<I>(lines).0 / 2
 }
         
 pub fn part_two<I>(lines: I) -> i64
@@ -15,7 +20,7 @@ pub fn part_two<I>(lines: I) -> i64
     calculate_path_and_closure::<I>(lines).1
 }
 
-pub fn calculate_path_and_closure<I>(lines: I) -> (i64, i64)
+fn calculate_path_and_closure<I>(lines: I) -> (i64, i64)
     where I : Iterator<Item = String> {
     let mut i_s = 0;
     let mut j_s = 0;
@@ -33,10 +38,9 @@ pub fn calculate_path_and_closure<I>(lines: I) -> (i64, i64)
     let mut len = 0;
     let m = v[0].len() - 1;
     let n = v.len() - 1;
-    let mut ab: Vec<Vec<i8>> = vec![vec![0; m+1]; n+1];
     
     // before we start looping work out a direction to travel in
-
+    // we don't know (yet) if we are travelling clockwise or anticlockwise
     let mut s = 0;
     if i > 0 && v[j][i - 1] & E != 0 {
         s |= W;
@@ -56,87 +60,97 @@ pub fn calculate_path_and_closure<I>(lines: I) -> (i64, i64)
     else if s & W != 0 { d = E; }
     else if s & S != 0 { d = N; }
     else if s & N != 0 { d = S; };
-
     
     let mut cw = 0i64;
 
-    let mut l : Vec<(usize, usize)> = Vec::new();
-    let mut r : Vec<(usize, usize)> = Vec::new();
+    let mut l : HashSet<(usize, usize)> = HashSet::new();
+    let mut r : HashSet<(usize, usize)> = HashSet::new();
+    let mut p : HashSet<(usize, usize)> = HashSet::new();
 
-    // ab is such that
-    // -1 if on path
-    // 1 if left of path (assuming clockwise)
-    // 2 if right of path (assuming clockwise)
     loop {
         let c = v[j][i];
-        ab[j][i] = -1;
+        // if we're on the path remove from left and right
+        // store path points in p
+        p.insert((i,j));
+        l.remove(&(i,j));
+        r.remove(&(i,j));
+
         len += 1;
+        // work out direction we came from
         let f = ((d << 2) | (d >> 2)) & MASK;
+        // work out the next direction based on the pipe section
         let dn = f ^ c;
+        // count the number of left and right turns
+        // to work out if we are travelling clockwise or not
         if dn == ((f >> 1) | (f << 3)) & MASK { cw += 1; }
         if dn == ((f << 1) | (f >> 3)) & MASK { cw -= 1; }
 
+        // add points on left and right based on our direction
         if d == E || dn == E {
-            if j > 0 { ab[j - 1][i] |= 1; l.push((i, j - 1)); }
-            if j < n { ab[j + 1][i] |= 2; r.push((i, j + 1)); }
+            if j > 0 { l.insert((i, j - 1)); }
+            if j < n { r.insert((i, j + 1)); }
         }
 
         if d == N || dn == N {
-            if i > 0 { ab[j][i - 1] |= 1; l.push((i - 1, j)); }
-            if i < m { ab[j][i + 1] |= 2; r.push((i + 1, j)); }
+            if i > 0 { l.insert((i - 1, j)); }
+            if i < m { r.insert((i + 1, j)); }
         }
 
         if d == W || dn == W {
-            if j > 0 { ab[j - 1][i] |= 2; r.push((i, j - 1)); }
-            if j < n { ab[j + 1][i] |= 1; l.push((i, j + 1)); }
+            if j > 0 { r.insert((i, j - 1)); }
+            if j < n { l.insert((i, j + 1)); }
         }
 
         if d == S || dn == S {
-            if i > 0 { ab[j][i - 1] |= 2; r.push((i - 1, j)); }
-            if i < m { ab[j][i + 1] |= 1; l.push((i + 1, j)); }
+            if i > 0 { r.insert((i - 1, j)); }
+            if i < m { l.insert((i + 1, j)); }
         }
 
         d = dn;
 
+        // increment i or j based on current direction
         match d {
             E => i += 1,
             W => i -= 1,
             S => j += 1,
             N => j -= 1,
-            _ => panic!("Unknown direction {d:#06b}")
+            _ => panic!("Disallowed direction {d:#06b}")
         }
+        // if we arrived back at the start we're done
         if i == i_s && j == j_s { break; }
     }
 
-
-
-    let mut visited = vec![vec![0; m + 1]; n + 1];
-    let mut inside = if cw < 0 { l } else { r };
+    // stored visited points
+    let mut vis : HashSet<(usize, usize)> = HashSet::new();
+    // if we're going clockwise then we want points on the right
+    // else we want points on the left
+    let ins = if cw < 0 { l } else { r };
     let mut inside_count = 0;
-    while let Some((i_s,j_s)) = inside.pop() {
+    for (i_s, j_s) in ins {
         let mut i = i_s;
         let mut j = j_s;
         loop {
-            if ab[j][i] >= 0 && visited[j][i] < 1 {
+            // if we're not on the path and haven't been visited then explore
+            if !p.contains(&(i,j)) && !vis.contains(&(i,j)) {
+                // count the points inside and track where we've visited
                 inside_count += 1;
-                visited[j][i] = 1;
-                if i > 0 && ab[j][i - 1] >= 0 && visited[j][i - 1] < 1 {
+                vis.insert((i,j));
+                // explore left, right, up or down
+                if i > 0 && !p.contains(&(i - 1, j)) && !vis.contains(&(i - 1, j)) {
                     i -= 1;
                 }
-                else if j > 0 && ab[j - 1][i] >= 0 && visited[j - 1][i] < 1 {
+                else if j > 0 && !p.contains(&(i, j - 1)) && !vis.contains(&(i, j - 1)) {
                     j -= 1;
                 }
-                else if i < m && ab[j][i + 1] >= 0 && visited[j][i + 1] < 1 {
+                else if i < m && !p.contains(&(i + 1, j)) && !vis.contains(&(i + 1, j)) {
                     i += 1;
                 }
-                else if j < n && ab[j + 1][i] >= 0 && visited[j + 1][i] < 1 {
+                else if j < n && !p.contains(&(i, j + 1)) && !vis.contains(&(i, j + 1)) {
                     j += 1;
                 }
             }
             else { break; }
         }
     }
-    (len / 2, inside_count)
+    (len, inside_count)
 }
-
-
