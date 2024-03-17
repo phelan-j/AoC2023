@@ -1,24 +1,35 @@
 pub fn part_one<I>(lines: I) -> i64
     where I : Iterator<Item = String> {
+    galaxy_distances::<I>(lines, 1)
+}
 
-    let mut row_counts : Vec<usize> = Vec::new();
-    let mut col_counts : Vec<usize> = Vec::new();
+pub fn part_two<I>(lines: I) -> i64
+    where I : Iterator<Item = String> {
+    galaxy_distances::<I>(lines, 999999)
+}
 
-    let mut points : Vec<(usize, usize)> = Vec::new();
+
+pub fn galaxy_distances<I>(lines: I, expansion: i64) -> i64
+    where I : Iterator<Item = String> {
+
+    let mut row_counts : Vec<i64> = Vec::new();
+    let mut col_counts : Vec<i64> = Vec::new();
+
+    let mut points : Vec<(i64, i64)> = Vec::new();
 
     for (j, line) in lines.enumerate() {
         let mut row_count = 0;
         for (i, c) in line.chars().enumerate() {
             let count = if c == '#' { 1 } else { 0 };
-            if count > 0 { points.push((i,j)); }
+            if count > 0 { points.push((i as i64,j as i64)); }
             row_count += count;
             if i < col_counts.len() { col_counts[i] += count; }
             else { col_counts.push(count); }
         }
         row_counts.push(row_count);
     }
-    let mut row_offsets : Vec<usize> = Vec::new();
-    let mut col_offsets : Vec<usize> = Vec::new();
+    let mut row_offsets : Vec<i64> = Vec::new();
+    let mut col_offsets : Vec<i64> = Vec::new();
     let mut o = 0;
     for &v in &row_counts {
         row_offsets.push(o);
@@ -32,8 +43,8 @@ pub fn part_one<I>(lines: I) -> i64
     }
 
     for (i,j) in points.iter_mut() {
-        *i += col_offsets[*i];
-        *j += row_offsets[*j];
+        *i += expansion * col_offsets[*i as usize];
+        *j += expansion * row_offsets[*j as usize];
     }
 
     let mut sum = 0;
