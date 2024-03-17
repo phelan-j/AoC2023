@@ -1,0 +1,8 @@
+pub fn part_one<I>(lines: I) -> i64
+    where I : Iterator<Item = String> {
+    for (j, line) in lines.enumerate() {
+        println!("{line}");
+    }
+    0
+}
+ 
